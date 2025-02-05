@@ -1,15 +1,19 @@
 import React, { useState } from "react";
+import { Upload, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 const App = () => {
   const [file, setFile] = useState(null);
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [labeledImage, setLabeledImage] = useState(null);
 
-  const [labeledImage, setLabeledImage] = useState(null); // Labeled result image
+  const API_URL = "https://pothole-api-1-0-0.onrender.com";
 
   const handleFileUpload = (e) => {
     setFile(e.target.files[0]);
+    setLabeledImage(null);
+    setResults(null);
   };
 
   const detectPotholes = async () => {
@@ -25,7 +29,7 @@ const App = () => {
     formData.append("file", file);
 
     try {
-      const response = await fetch("https://zany-lamp-56p55wpr557fp45r-8000.app.github.dev/analyze-pothole", {
+      const response = await fetch(`${API_URL}/analyze-pothole`, {
         method: "POST",
         body: formData,
       });
@@ -41,7 +45,7 @@ const App = () => {
         num_potholes: data.num_potholes_detected,
       });
 
-      setLabeledImage(data.labeled_image_url); // Get the labeled image URL
+      setLabeledImage(data.labeled_image_url);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -50,68 +54,92 @@ const App = () => {
   };
 
   return (
-    <div className="p-4 max-w-screen-md mx-auto">
-      <h1 className="text-2xl font-bold mb-4 text-center">Pothole Detection App</h1>
+    <div className="min-h-screen bg-gray-900 text-gray-100 p-6 flex flex-col items-center">
+      <div className="max-w-3xl w-full">
+        <h1 className="text-3xl font-extrabold text-center mb-6 mt-6">
+          Pothole Detection Tool
+        </h1>
 
-      <input
-        type="file"
-        accept="image/*"
-        onChange={handleFileUpload}
-        className="mb-4 block w-full"
-      />
+        <label className="flex items-center justify-center bg-gray-800 text-gray-300
+                           rounded-lg p-3 mb-4 cursor-pointer hover:bg-gray-700 transition py-8 border border-gray-600 border-dashed">
+          <Upload className="mr-2" />
+          {file ? file.name :
+           (<span>Select an Image File</span>)}
+          
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+        </label>
 
-      <button
-        onClick={detectPotholes}
-        className={`bg-blue-500 text-white py-2 px-4 rounded w-full ${
-          loading && "opacity-50 cursor-not-allowed"
-        }`}
-        disabled={loading}
-      >
-        {loading ? "Detecting..." : "Detect Potholes"}
-      </button>
+        <button
+          onClick={detectPotholes}
+          className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition flex justify-center items-center ${
+            loading && "opacity-50 cursor-not-allowed"
+          }`}
+          disabled={loading}
+        >
+          {loading ? (
+            <Loader2 className="animate-spin mr-2" />
+          ) : (
+            "Detect Potholes"
+          )}
+        </button>
 
-      {error && (
-        <div className="mt-4 text-red-600">
-          <strong>Error:</strong> {error}
-        </div>
-      )}
+        {error && (
+          <div className="mt-4 text-red-400 flex items-center">
+            <AlertCircle className="mr-2" />
+            <strong>Error:</strong> {error}
+          </div>
+        )}
 
-      {results && (
-        <div className="mt-6">
-          <h2 className="text-lg font-semibold mb-2">Detection Results:</h2>
-          <p><strong>Severity:</strong> {results.severity}</p>
-          <p><strong>Number of Potholes Detected:</strong> {results.num_potholes}</p>
+        {results && !loading &&(
+          <div className="mt-8 bg-gray-800 p-4 rounded-lg shadow-lg">
+            <h2 className="text-xl font-bold mb-2 flex items-center">
+              <CheckCircle2 className="mr-2 text-green-400" /> Detection Results
+            </h2>
+            <p>
+              <strong>Severity:</strong> {results.severity}
+            </p>
+            <p>
+              <strong>Number of Potholes Detected:</strong>{" "}
+              {results.num_potholes}
+            </p>
+          </div>
+        )}
 
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {file && (
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h3 className="text-sm font-medium mb-2">Unlabeled Image:</h3>
-              {file && (
-                <img
-                  src={URL.createObjectURL(file)}
-                  alt="Uploaded File"
-                  className="w-full rounded-lg"
-                />
-              )}
+              <h3 className="text-sm font-semibold mb-2">Unlabeled Image:</h3>
+              <img
+                src={URL.createObjectURL(file)}
+                alt="Uploaded"
+                className="w-full rounded-lg shadow-md"
+              />
             </div>
 
             <div>
-              <h3 className="text-sm font-medium mb-2">Labeled Image:</h3>
-              {labeledImage ? (
+              <h3 className="text-sm font-semibold mb-2">Labeled Image:</h3>
+              {labeledImage && 
                 <img
-                  src={`https://zany-lamp-56p55wpr557fp45r-8000.app.github.dev${labeledImage}`}
+                  src={`${API_URL}${labeledImage}`}
                   alt="Labeled Detection Result"
-                  className="w-full rounded-lg"
-                />
-              ) : (
-                <p>No labeled image available.</p>
-              )}
+                  className="w-full rounded-lg shadow-md"
+                />}
+              
+                {loading && <p>Loading Image...</p> }
+                
+                {!loading && file && !results && <p>No Image</p>}
+             
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
 
 export default App;
-
