@@ -8,7 +8,7 @@ const App = () => {
   const [error, setError] = useState(null);
   const [labeledImage, setLabeledImage] = useState(null);
 
-  const API_URL = "https://pothole-api-1-0-0.onrender.com";
+  const API_URL = "https://pothole-api-595422885057.us-central1.run.app";
 
   const handleFileUpload = (e) => {
     setFile(e.target.files[0]);
