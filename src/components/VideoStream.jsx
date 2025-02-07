@@ -119,6 +119,7 @@ const VideoStream = () => {
   const connectWebSocket = () => {
     ws.current = new WebSocket(WEBSOCKET_URL);
 
+    
     ws.current.onopen = () => {
       console.log("WebSocket connected");
       setDetectionActive(true);
@@ -267,7 +268,7 @@ const VideoStream = () => {
             <CheckCircle2 className="mr-2 text-green-400" /> Overall Results
           </h2>
           <p>
-            <strong>Potholes Detected (since start):</strong> {totalPotholes}
+            <strong>Potholes Detected (since start):</strong> {results.num_potholes}
           </p>
           <p>
             <strong>Average Severity (for current pothole count):</strong> {averageSeverity.toFixed(2)}
