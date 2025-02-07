@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import ImageDetection from "./components/ImageDetection";
 import VideoStream from "./components/VideoStream";
 import VideoDetection from "./components/VideoDetection";
+import { Menu } from 'lucide-react'; // Import the Menu icon
+
 
 const NavButton = ({ label, onClick, isActive }) => {
   return (
@@ -20,6 +22,8 @@ const NavButton = ({ label, onClick, isActive }) => {
 
 const App = () => {
   const [activeComponent, setActiveComponent] = useState("image");
+  const [isMenuOpen, setIsMenuOpen] = useState(false); // State for mobile menu
+
 
   const renderComponent = () => {
     switch (activeComponent) {
@@ -34,24 +38,35 @@ const App = () => {
     }
   };
 
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100 p-6 flex flex-col items-center">
-      <nav className="w-full flex justify-between items-center p-4 bg-gray-800 rounded-md shadow-md">
+    <div className="min-h-screen bg-gray-900 text-gray-100 p-4 flex flex-col items-center"> {/* Adjusted padding for smaller screens */}
+      <nav className="w-full flex flex-wrap justify-between items-center p-4 bg-gray-800 rounded-md shadow-md"> {/* flex-wrap added */}
         <div className="text-white text-xl font-semibold">Pothole Detection</div>
-        <div className="space-x-4">
+
+        {/* Mobile Menu Button */}
+        <button onClick={toggleMenu} className="md:hidden text-gray-300 hover:text-white focus:outline-none">
+          <Menu className="h-6 w-6" />
+        </button>
+
+        {/* Navigation Links */}
+        <div className={`w-full md:w-auto md:flex space-x-4 ${isMenuOpen ? 'block' : 'hidden'} md:block mt-2 md:mt-0`}> {/* Conditional class for mobile menu */}
           <NavButton
             label="Image Detection"
-            onClick={() => setActiveComponent("image")}
+            onClick={() => {setActiveComponent("image"); setIsMenuOpen(false);}} // Close menu on selection
             isActive={activeComponent === "image"}
           />
           <NavButton
             label="Real-time Detection"
-            onClick={() => setActiveComponent("videoStream")}
+            onClick={() => {setActiveComponent("videoStream"); setIsMenuOpen(false);}} // Close menu on selection
             isActive={activeComponent === "videoStream"}
           />
           <NavButton
             label="Video Detection"
-            onClick={() => setActiveComponent("videoDetection")}
+            onClick={() => {setActiveComponent("videoDetection"); setIsMenuOpen(false);}} // Close menu on selection
             isActive={activeComponent === "videoDetection"}
           />
         </div>
