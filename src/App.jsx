@@ -9,7 +9,7 @@ const NavButton = ({ label, onClick, isActive }) => {
   return (
     <button
       onClick={onClick}
-      className={`rounded-lg py-2 px-4 font-semibold transition-colors duration-200 ${
+      className={`block md:inline-block rounded-lg py-2 px-4 font-semibold transition-colors duration-200 mb-2 md:mb-0 ${ // mb-2 for mobile spacing, removed from general style
         isActive
           ? "bg-blue-600 text-white hover:bg-blue-700 focus:ring focus:ring-blue-300 focus:ring-opacity-50"
           : "bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white focus:ring focus:ring-gray-500 focus:ring-opacity-50"
@@ -48,17 +48,18 @@ const App = () => {
         <div className="text-white text-xl font-semibold">Pothole Detection</div>
 
         {/* Mobile Menu Button */}
-        <button onClick={toggleMenu} className="md:hidden text-gray-300 hover:text-white focus:outline-none">
-          <Menu className="h-6 w-6" />
+        <button onClick={toggleMenu} className="md:hidden text-gray-300  hover:text-white focus:outline-none">
+          <Menu className="h-7 w-6 " />
         </button>
 
         {/* Navigation Links */}
-        <div className={`w-full md:w-auto md:flex space-x-4 ${isMenuOpen ? 'block' : 'hidden'} md:block mt-2 md:mt-0`}> {/* Conditional class for mobile menu */}
+        <div className={`w-full md:w-auto md:flex flex-col md:flex-row  space-x-4 ${isMenuOpen ? 'block' : 'hidden'} md:block mt-4 md:mt-0 flex`}> {/* Conditional class for mobile menu */}
           <NavButton
             label="Image Detection"
             onClick={() => {setActiveComponent("image"); setIsMenuOpen(false);}} // Close menu on selection
             isActive={activeComponent === "image"}
           />
+
           <NavButton
             label="Real-time Detection"
             onClick={() => {setActiveComponent("videoStream"); setIsMenuOpen(false);}} // Close menu on selection

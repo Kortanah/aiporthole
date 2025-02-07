@@ -38,6 +38,7 @@ const VideoDetection = () => {
 
   const startDetection = () => {
     console.log("Detection started");
+    setLoading(true); // Start loading state
     connectWebSocket();
   };
 
@@ -47,6 +48,7 @@ const VideoDetection = () => {
       ws.current.close();
     }
     setProcessedImageSrc(null);
+    setLoading(false); // Stop loading state
     console.log("Detection stopped");
     clearInterval(frameTimerRef.current);
     frameTimerRef.current = null;
@@ -65,6 +67,7 @@ const VideoDetection = () => {
       setDetectionActive(false);
       clearInterval(frameTimerRef.current);
       frameTimerRef.current = null;
+      setLoading(false);  // Stop loading on close
     };
 
     ws.current.onerror = (error) => {
@@ -74,6 +77,7 @@ const VideoDetection = () => {
       stopDetection();
       clearInterval(frameTimerRef.current);
       frameTimerRef.current = null;
+      setLoading(false);  // Stop loading on error
     };
 
     ws.current.onmessage = (event) => {
@@ -82,6 +86,7 @@ const VideoDetection = () => {
         if (data.image) {
           const imageUrl = `data:image/jpeg;base64,${data.image}`;
           setProcessedImageSrc(imageUrl);
+          setLoading(false); // Image received, stop loading
         }
 
         // Make sure the result is not null when the stream is off
@@ -94,6 +99,7 @@ const VideoDetection = () => {
       } catch (error) {
         console.error("Error processing WebSocket message:", error);
         setError("Failed to process data from server");
+        setLoading(false);  // Stop loading on data processing error
       }
     };
   };
@@ -140,19 +146,19 @@ const VideoDetection = () => {
     };
   }, []);
 
-     useEffect(() => {
-         if (streamActive && detectionActive) {
-             if (!frameTimerRef.current) {
-                 frameTimerRef.current = setInterval(sendFrameToServer, 200);
-                 console.log("Frame timer started");
-             }
-         } else {
-             setProcessedImageSrc(null);
-             clearInterval(frameTimerRef.current);
-             frameTimerRef.current = null;
-             console.log("Frame timer stopped");
-         }
-     }, [streamActive, detectionActive, videoWidth, videoHeight]);
+  useEffect(() => {
+    if (streamActive && detectionActive) {
+      if (!frameTimerRef.current) {
+        frameTimerRef.current = setInterval(sendFrameToServer, 200);
+        console.log("Frame timer started");
+      }
+    } else {
+      setProcessedImageSrc(null);
+      clearInterval(frameTimerRef.current);
+      frameTimerRef.current = null;
+      console.log("Frame timer stopped");
+    }
+  }, [streamActive, detectionActive, videoWidth, videoHeight]);
 
 
   const getButtonColor = (isActive, baseColor) => {
@@ -175,13 +181,13 @@ const VideoDetection = () => {
         <button
           onClick={detectionActive ? stopDetection : startDetection}
           className={`w-full ${getButtonColor(detectionActive, 'blue')} mb-4 text-white font-semibold py-3 px-6 rounded-lg mt-4 transition duration-200`}
-          disabled={!streamActive}
+          disabled={!streamActive || loading}
         >
           {detectionActive ? "Stop Detection" : "Start Detection"}
         </button>
         {/* Video Display */}
-        <div className="flex flex-row">
-          <div className="flex flex-col items-center mr-4">
+        <div className="flex flex-col items-center md:flex-row"> {/* Added responsive container */}
+          <div className="flex flex-col items-center mr-4 mb-4 md:mb-0"> {/* Added responsive margins */}
             <h3 className="text-sm font-semibold mb-2">Original Stream:</h3>
             <video
               ref={videoRef}
@@ -195,6 +201,7 @@ const VideoDetection = () => {
 
           <div className="flex flex-col items-center">
             <h3 className="text-sm font-semibold mb-2">Processed Stream:</h3>
+            {loading && <p>Loading...</p>} {/* Show loading message */}
             {processedImageSrc ? (
               <img
                 src={processedImageSrc}
