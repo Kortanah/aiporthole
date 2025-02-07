@@ -59,13 +59,22 @@ const VideoStream = () => {
       }
     }
 
+    // const constraints = {
+    //   video: {
+    //     deviceId: { exact: deviceId },
+    //     width: { ideal: 640 },
+    //     height: { ideal: 480 },
+    //   },
+    // };
+
     const constraints = {
-      video: {
-        deviceId: { exact: deviceId },
-        width: { ideal: 640 },
-        height: { ideal: 480 },
-      },
-    };
+        video: {
+          deviceId: deviceId ? { exact: deviceId } : undefined,
+          facingMode: { ideal: "environment" }, // Request the back camera
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+        },
+      };
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
