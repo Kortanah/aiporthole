@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, Camera } from "lucide-react";
 
 const VideoStream = () => {
   const [error, setError] = useState(null);
   const [results, setResults] = useState(null);
   const [streamActive, setStreamActive] = useState(false);
+  const [cameraActivated, setCameraActivated] = useState(false); // New state for camera activation
   const [detectionActive, setDetectionActive] = useState(false);
+  const [detectionLoading, setDetectionLoading] = useState(false); // Added loading state
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const ws = useRef(null);
@@ -72,6 +74,7 @@ const VideoStream = () => {
         videoRef.current.srcObject = stream;
       }
       setStreamActive(true);
+      setCameraActivated(true); // Camera is now activated
       console.log("Webcam started");
     } catch (err) {
       console.error("Error accessing webcam:", err);
@@ -89,17 +92,28 @@ const VideoStream = () => {
       videoRef.current.srcObject = null;
     }
     setStreamActive(false);
+    setCameraActivated(false); // Camera is no longer activated
     stopDetection();
     console.log("Webcam stopped");
   };
 
-  const startDetection = () => {
+  const startDetection = async () => {
     console.log("Detection started");
-    connectWebSocket();
+    setDetectionLoading(true); // Start loading
+    try {
+      await connectWebSocket();
+    } catch (error) {
+      console.error("Error starting detection:", error);
+      setError("Failed to start detection.");
+      setDetectionLoading(false); // Stop loading on error
+    } finally {
+      setDetectionLoading(false); // Ensure loading is stopped after attempt
+    }
   };
 
   const stopDetection = () => {
     setDetectionActive(false);
+    setDetectionLoading(false);
     if (ws.current) {
       ws.current.close();
     }
@@ -117,71 +131,73 @@ const VideoStream = () => {
   };
 
   const connectWebSocket = () => {
-    ws.current = new WebSocket(WEBSOCKET_URL);
-
-    
-    ws.current.onopen = () => {
-      console.log("WebSocket connected");
-      setDetectionActive(true);
-    };
-
-    ws.current.onclose = () => {
-      console.log("WebSocket disconnected");
-      setDetectionActive(false);
-      clearInterval(frameTimerRef.current);
-      frameTimerRef.current = null;
-    };
-
-    ws.current.onerror = (error) => {
-      console.error("WebSocket error:", error);
-      setError("WebSocket error. Check console.");
-      setDetectionActive(false);
-      stopWebcam();
-      clearInterval(frameTimerRef.current);
-      frameTimerRef.current = null;
-    };
-
-    ws.current.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-
-        if (data.image) {
-          const imageUrl = `data:image/jpeg;base64,${data.image}`;
-          setProcessedImageSrc(imageUrl);
-        }
-
-        if (data.pothole_count !== undefined && data.average_severity !== undefined) {
-
-          const potholeDifference = Math.abs(data.pothole_count - previousPotholeCount);
-          setTotalPotholes((prevTotal) => prevTotal + potholeDifference);
-
-
-          if (data.pothole_count === previousPotholeCount) {
-            setAverageSeveritySum((prevSum) => prevSum + data.average_severity);
-            setSeverityCount((prevCount) => prevCount + 1);
-            setAverageSeverity((averageSeveritySum + data.average_severity) / (severityCount + 1));
-            setTotalAverageSeverity((prevTotal) => prevTotal + averageSeverity);
-          } else {
-            setAverageSeveritySum(data.average_severity);
-            setSeverityCount(1);
-            setAverageSeverity(data.average_severity);
-            setTotalAverageSeverity(0);
+    return new Promise((resolve, reject) => {
+      ws.current = new WebSocket(WEBSOCKET_URL);
+  
+      ws.current.onopen = () => {
+        console.log("WebSocket connected");
+        setDetectionActive(true);
+        resolve();
+      };
+  
+      ws.current.onclose = () => {
+        console.log("WebSocket disconnected");
+        setDetectionActive(false);
+        setDetectionLoading(false);
+        clearInterval(frameTimerRef.current);
+        frameTimerRef.current = null;
+      };
+  
+      ws.current.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        setError("WebSocket error. Check console.");
+        setDetectionActive(false);
+        setDetectionLoading(false);
+        stopWebcam();
+        clearInterval(frameTimerRef.current);
+        frameTimerRef.current = null;
+        reject(error);
+      };
+  
+      ws.current.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+  
+          if (data.image) {
+            const imageUrl = `data:image/jpeg;base64,${data.image}`;
+            setProcessedImageSrc(imageUrl);
           }
-
-
-          setResults({
-            num_potholes: data.pothole_count,
-            average_severity: data.average_severity,
-          });
-
-          setPreviousPotholeCount(data.pothole_count);
+  
+          if (data.pothole_count !== undefined && data.average_severity !== undefined) {
+            const potholeDifference = Math.abs(data.pothole_count - previousPotholeCount);
+            setTotalPotholes((prevTotal) => prevTotal + potholeDifference);
+  
+            if (data.pothole_count === previousPotholeCount) {
+              setAverageSeveritySum((prevSum) => prevSum + data.average_severity);
+              setSeverityCount((prevCount) => prevCount + 1);
+              setAverageSeverity((averageSeveritySum + data.average_severity) / (severityCount + 1));
+              setTotalAverageSeverity((prevTotal) => prevTotal + averageSeverity);
+            } else {
+              setAverageSeveritySum(data.average_severity);
+              setSeverityCount(1);
+              setAverageSeverity(data.average_severity);
+              setTotalAverageSeverity(0);
+            }
+  
+            setResults({
+              num_potholes: data.pothole_count,
+              average_severity: data.average_severity,
+            });
+  
+            setPreviousPotholeCount(data.pothole_count);
+          }
+        } catch (error) {
+          console.error("Error processing WebSocket message:", error);
+          console.log("Raw data:", event.data);
+          setError("Failed to process data from server");
         }
-      } catch (error) {
-        console.error("Error processing WebSocket message:", error);
-        console.log("Raw data:", event.data);
-        setError("Failed to process data from server");
-      }
-    };
+      };
+    });
   };
 
   const sendFrameToServer = () => {
@@ -251,15 +267,22 @@ const VideoStream = () => {
           onClick={streamActive ? stopWebcam : startWebcam}
           className={`w-full  ${getButtonColor(streamActive, "bg-green-600")} text-white font-semibold py-3 px-6 rounded-lg mt-4 transition duration-200 bg-green`}
         >
-          {streamActive ? "Stop Webcam" : "Start Webcam"}
+          {streamActive ? "Stop Webcam" : (cameraActivated ? "Start Camera" : "Activate Camera")}
         </button>
 
         <button
           onClick={detectionActive ? stopDetection : startDetection}
-          className={`w-full  ${getButtonColor(detectionActive, "bg-blue-600")} text-white font-semibold py-3 px-6 rounded-lg mt-4 transition duration-200`}
-          disabled={!streamActive}
+          className={`w-full ${getButtonColor(detectionActive, "bg-blue-600")} text-white font-semibold py-3 px-6 rounded-lg mt-4 transition duration-200`}
+          disabled={!streamActive || detectionLoading}
         >
-          {detectionActive ? "Stop Detection" : "Start Detection"}
+          {detectionLoading ? (
+            <>
+              <Loader2 className="mr-2 animate-spin inline" />
+              Loading...
+            </>
+          ) : (
+            detectionActive ? "Stop Detection" : "Start Detection"
+          )}
         </button>
 
       {results && (
