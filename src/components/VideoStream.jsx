@@ -69,8 +69,8 @@ const VideoStream = () => {
 
     const constraints = {
         video: {
-          deviceId: deviceId ? { exact: deviceId } : undefined,
-          facingMode: { ideal: "environment" }, // Request the back camera
+        //   deviceId: deviceId ? { exact: deviceId } : undefined,
+          facingMode: "environment" , // Request the back camera
           width: { ideal: 640 },
           height: { ideal: 480 },
         },
