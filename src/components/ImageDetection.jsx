@@ -27,7 +27,6 @@ const ImageDetection = () => {
         onDrop,
         multiple: true,
         accept: 'image/*', // Accept only image files
-        maxFiles: 10,
     });
 
 
@@ -122,7 +121,7 @@ const ImageDetection = () => {
       <h1 className="text-3xl font-extrabold text-center mb-6">Pothole Detection Tool</h1>
 
         <div {...getRootProps()} className={`flex items-center justify-center bg-gray-800 text-gray-300 rounded-lg p-3 mb-4 cursor-pointer hover:bg-gray-700 transition py-8 border border-gray-600 border-dashed ${isDragActive ? 'border-blue-500 bg-gray-700' : ''}`}>
-            <input {...getInputProps()} />
+            <input {...getInputProps()} multiple /> {/* Added multiple attribute */}
             <Upload className="mr-2" />
             {files.length > 0 ? (
                 <span>Selected {files.length} images</span>
