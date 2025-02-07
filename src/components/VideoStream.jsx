@@ -10,15 +10,15 @@ const VideoStream = () => {
   const canvasRef = useRef(null);
   const ws = useRef(null);
   const [deviceId, setDeviceId] = useState(null);
-  const [processedImageSrc, setProcessedImageSrc] = useState(null); // Processed image
+  const [processedImageSrc, setProcessedImageSrc] = useState(null);
   const frameTimerRef = useRef(null);
 
   const [totalPotholes, setTotalPotholes] = useState(0);
-  const [previousPotholeCount, setPreviousPotholeCount] = useState(0); // Store the previous pothole count
+  const [previousPotholeCount, setPreviousPotholeCount] = useState(0);
   const [averageSeveritySum, setAverageSeveritySum] = useState(0);
   const [severityCount, setSeverityCount] = useState(0);
   const [averageSeverity, setAverageSeverity] = useState(0);
-  const [totalAverageSeverity, setTotalAverageSeverity] = useState(0);  // New state variable
+  const [totalAverageSeverity, setTotalAverageSeverity] = useState(0);
 
   const WEBSOCKET_URL = "wss://ai-pothole-detector-app-595422885057.us-central1.run.app/stream";
 
@@ -40,10 +40,9 @@ const VideoStream = () => {
   const startWebcam = async () => {
     setError(null);
 
-    // Request camera permission if not already granted
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      stream.getTracks().forEach(track => track.stop()); // Stop the stream immediately
+      stream.getTracks().forEach(track => track.stop());
 
     } catch (permissionErr) {
       console.error("Camera permission denied:", permissionErr);
@@ -52,27 +51,18 @@ const VideoStream = () => {
     }
 
     if (!deviceId) {
-      // If no deviceId, try getting camera devices again.  If that fails, user probably denied permission.
       await getCameraDevices();
       if (!deviceId) {
-        return; // Exit if still no deviceId after re-attempting to get devices.
+        return;
       }
     }
 
-    // const constraints = {
-    //   video: {
-    //     deviceId: { exact: deviceId },
-    //     width: { ideal: 640 },
-    //     height: { ideal: 480 },
-    //   },
-    // };
 
     const constraints = {
         video: {
-        //   deviceId: deviceId ? { exact: deviceId } : undefined,
-          facingMode: "environment" , // Request the back camera
+          facingMode: "environment" ,
           width: { ideal: 640 },
-          height: { ideal: 480 },
+          height: { ideal: 640 },
         },
       };
 
@@ -117,10 +107,17 @@ const VideoStream = () => {
     console.log("Detection stopped");
     clearInterval(frameTimerRef.current);
     frameTimerRef.current = null;
+    setPreviousPotholeCount(0);
+    setTotalPotholes(0);
+    setAverageSeveritySum(0);
+    setSeverityCount(0);
+    setAverageSeverity(0);
+    setTotalAverageSeverity(0);
+
   };
 
   const connectWebSocket = () => {
-    ws.current = new WebSocket(WEBSOCKET_URL);  // Use WEBSOCKET_URL
+    ws.current = new WebSocket(WEBSOCKET_URL);
 
     ws.current.onopen = () => {
       console.log("WebSocket connected");
@@ -153,33 +150,29 @@ const VideoStream = () => {
         }
 
         if (data.pothole_count !== undefined && data.average_severity !== undefined) {
-          // Total Pothole Count Logic
+
           const potholeDifference = Math.abs(data.pothole_count - previousPotholeCount);
           setTotalPotholes((prevTotal) => prevTotal + potholeDifference);
 
-          // Average Severity Logic
+
           if (data.pothole_count === previousPotholeCount) {
             setAverageSeveritySum((prevSum) => prevSum + data.average_severity);
             setSeverityCount((prevCount) => prevCount + 1);
-            setAverageSeverity((averageSeveritySum + data.average_severity) / (severityCount + 1));  //Calculate immediately
-            // Accumulate totalAverageSeverity only if pothole_count repeats
-            setTotalAverageSeverity((prevTotal) => prevTotal + averageSeverity);  // ADD to running total
+            setAverageSeverity((averageSeveritySum + data.average_severity) / (severityCount + 1));
+            setTotalAverageSeverity((prevTotal) => prevTotal + averageSeverity);
           } else {
-            // Reset average severity calculation
             setAverageSeveritySum(data.average_severity);
             setSeverityCount(1);
-            setAverageSeverity(data.average_severity); //Current Average Severity
-            setTotalAverageSeverity(0);  // RESET totalAverageSeverity
+            setAverageSeverity(data.average_severity);
+            setTotalAverageSeverity(0);
           }
 
-          //Update the results state
 
           setResults({
             num_potholes: data.pothole_count,
             average_severity: data.average_severity,
           });
 
-          // Store the current pothole count for the next frame
           setPreviousPotholeCount(data.pothole_count);
         }
       } catch (error) {
@@ -205,7 +198,7 @@ const VideoStream = () => {
 
     const context = canvasRef.current.getContext("2d");
     canvasRef.current.width = 640;
-    canvasRef.current.height = 480;
+    canvasRef.current.height = 640;
 
     context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
     canvasRef.current.toBlob(
@@ -244,7 +237,7 @@ const VideoStream = () => {
     }
   }, [streamActive, detectionActive]);
 
-  // Helper function to determine the button color based on its state
+
   const getButtonColor = (isActive, baseColor) => {
     return ` ${isActive ? 'bg-red-600' : baseColor} ${isActive ? 'hover:bg-red-700' : 'hover:bg-blue-700'}`;
   };
@@ -268,33 +261,48 @@ const VideoStream = () => {
           {detectionActive ? "Stop Detection" : "Start Detection"}
         </button>
 
-        <div className="flex flex-col items-center md:flex-row mt-4"> {/* Added mt-4 for spacing */}
-          <div className="flex flex-col items-center mr-4 mb-4 md:mb-0"> {/* Added responsive margin */}
-            <h3 className="text-sm font-semibold mb-2">Original Stream:</h3>
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
+      {results && (
+        <div className="mt-8 bg-gray-800 p-4 w-full rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold mb-2 flex items-center">
+            <CheckCircle2 className="mr-2 text-green-400" /> Overall Results
+          </h2>
+          <p>
+            <strong>Potholes Detected (since start):</strong> {totalPotholes}
+          </p>
+          <p>
+            <strong>Average Severity (for current pothole count):</strong> {averageSeverity.toFixed(2)}
+          </p>
+        </div>
+      )}
+
+      <div className="flex md:flex-row flex-col items-center mt-4 w-full">
+        <div className="w-full md:w-1/2 flex flex-col items-center p-2">
+          <h3 className="text-sm font-semibold mb-2">Processed Stream:</h3>
+          {processedImageSrc ? (
+            <img
+              src={processedImageSrc}
+              alt="Processed Video"
               className="w-full rounded-lg shadow-md"
               style={{ height: "auto", maxWidth: "400px" }}
-              muted
             />
-          </div>
-
-          <div className="flex flex-col items-center">
-            <h3 className="text-sm font-semibold mb-2">Processed Stream:</h3>
-            {processedImageSrc ? (
-              <img
-                src={processedImageSrc}
-                alt="Processed Video"
-                className="w-full rounded-lg shadow-md"
-                style={{ height: "auto", maxWidth: "400px" }}
-              />
-            ) : (
-              <p>Processed stream will appear here when detection is running.</p>
-            )}
-          </div>
+          ) : (
+            <p>Processed stream will appear here when detection is running.</p>
+          )}
         </div>
+
+        <div className="w-full md:w-1/2 flex flex-col items-center p-2">
+          <h3 className="text-sm font-semibold mb-2">Original Stream:</h3>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="w-full rounded-lg shadow-md"
+            style={{ height: "auto", maxWidth: "400px" }}
+            muted
+          />
+        </div>
+      </div>
+
         <canvas ref={canvasRef} className="hidden" />
       </div>
 
@@ -304,26 +312,6 @@ const VideoStream = () => {
           <strong>Error:</strong> {error}
         </div>
       )}
-
-      {results && (
-
-        <div className="mt-8 bg-gray-800 p-4 rounded-lg shadow-lg">
-          <h2 className="text-xl font-bold mb-2 flex items-center">
-            <CheckCircle2 className="mr-2 text-green-400" /> Overall Results
-          </h2>
-          <p>
-            <strong>Potholes Detected:</strong> {results.num_potholes}
-          </p>
-          <p>
-            <strong>Average Severity (for current pothole count):</strong> {averageSeverity.toFixed(2)}
-          </p>
-
-          {/* <p> */}
-          {/* <strong>Total Average Severity:</strong> {totalAverageSeverity.toFixed(2)} */}
-          {/* </p> */}
-        </div>
-      )}
-
     </>
   );
 };
