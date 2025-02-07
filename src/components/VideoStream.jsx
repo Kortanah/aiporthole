@@ -12,6 +12,7 @@ const VideoStream = () => {
   const [deviceId, setDeviceId] = useState(null);
   const [processedImageSrc, setProcessedImageSrc] = useState(null); // Processed image
   const frameTimerRef = useRef(null);
+  const [cameraFacingMode, setCameraFacingMode] = useState("user"); // 'user' for front, 'environment' for back
 
   const [totalPotholes, setTotalPotholes] = useState(0);
   const [previousPotholeCount, setPreviousPotholeCount] = useState(0); // Store the previous pothole count
@@ -30,7 +31,11 @@ const VideoStream = () => {
         setError("No camera found.");
         return;
       }
-      setDeviceId(videoDevices[0].deviceId);
+
+      // Prioritize the back camera if available
+      const backCamera = videoDevices.find(device => device.label.toLowerCase().includes("back"));
+      setDeviceId(backCamera ? backCamera.deviceId : videoDevices[0].deviceId);
+
     } catch (err) {
       console.error("Error enumerating devices:", err);
       setError("Error accessing camera devices.");
@@ -64,6 +69,7 @@ const VideoStream = () => {
         deviceId: { exact: deviceId },
         width: { ideal: 640 },
         height: { ideal: 480 },
+        facingMode: { exact: cameraFacingMode } // Specify camera facing mode
       },
     };
 
@@ -240,6 +246,10 @@ const VideoStream = () => {
     return ` ${isActive ? 'bg-red-600' : baseColor} `;
   };
 
+  const toggleCameraFacingMode = () => {
+    setCameraFacingMode(prevMode => (prevMode === "user" ? "environment" : "user"));
+  };
+
   return (
     <>
       <h1 className="text-3xl font-extrabold text-center mb-6">Real-Time Video Detection</h1>
@@ -258,6 +268,16 @@ const VideoStream = () => {
         >
           {detectionActive ? "Stop Detection" : "Start Detection"}
         </button>
+
+        {/* Camera facing mode toggle button */}
+        {streamActive && (
+          <button
+            onClick={toggleCameraFacingMode}
+            className="bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg mt-4 transition duration-200"
+          >
+            Switch Camera
+          </button>
+        )}
 
         <div className="flex flex-col items-center md:flex-row mt-4"> {/* Added mt-4 for spacing */}
           <div className="flex flex-col items-center mr-4 mb-4 md:mb-0"> {/* Added responsive margin */}
